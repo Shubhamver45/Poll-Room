@@ -59,14 +59,14 @@ export default function CreatePoll() {
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', minHeight: '100vh' }}>
 
             {/* Header */}
-            <header className="top-header" style={{ marginBottom: '3rem' }}>
+            <header className="top-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '-1px' }}>
+                    <h1 style={{ fontSize: '2.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '-1px', margin: 0 }}>
                         <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ color: '#A78BFA' }}>Poll</span>Room
                         </Link>
                     </h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Configure new polling instance.</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', margin: '0.5rem 0 0' }}>Configure new polling instance.</p>
                 </div>
                 <div style={{ fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.9rem', padding: '0.5rem 1rem', background: '#1F2937', borderRadius: '8px' }}>
                     ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}
@@ -74,36 +74,51 @@ export default function CreatePoll() {
             </header>
 
             {/* Dashboard Grid Layout */}
-            <div className="dashboard-grid">
+            <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem' }}>
 
                 {/* Left Panel: Configuration Form */}
                 <div className="card" style={{ gridColumn: 'span 1' }}>
-                    <div className="card-title">
+                    <div className="card-title" style={{ marginBottom: '2rem' }}>
                         Poll Configuration
                         <span style={{ fontSize: '0.8rem', background: '#374151', padding: '2px 8px', borderRadius: '4px', color: '#9CA3AF' }}>DRAFT</span>
                     </div>
 
-                    <form onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label className="form-label" style={{ color: '#A78BFA', fontWeight: 'bold' }}>POLL INQUIRY (QUESTION)</label>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+                        {/* Question Input - FULL WIDTH VERTICAL STACK */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <label style={{ color: '#A78BFA', fontWeight: '700', fontSize: '0.9rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                Poll Inquiry (Question)
+                            </label>
                             <input
                                 type="text"
-                                className="form-input"
                                 placeholder="Enter system query..."
                                 value={question}
                                 onChange={(e) => setQuestion(e.target.value)}
                                 autoFocus
-                                style={{ fontSize: '1.1rem', padding: '1rem', background: '#111827', borderColor: '#374151' }}
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    background: '#111827',
+                                    border: '1px solid #374151',
+                                    borderRadius: '12px',
+                                    color: 'white',
+                                    fontSize: '1.1rem',
+                                    fontFamily: 'inherit'
+                                }}
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label className="form-label" style={{ color: '#A78BFA', fontWeight: 'bold', marginTop: '1.5rem' }}>RESPONSE VECTORS</label>
+                        {/* Response Options - FULL WIDTH VERTICAL STACK */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <label style={{ color: '#A78BFA', fontWeight: '700', fontSize: '0.9rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                Response Vectors
+                            </label>
 
                             {options.map((option, index) => (
-                                <div key={index} className="option-row" style={{ position: 'relative', border: 'none', padding: '0.5rem 0' }}>
+                                <div key={index} style={{ position: 'relative', width: '100%' }}>
                                     <div style={{
-                                        position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                                        position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
                                         width: '24px', height: '24px', background: '#374151',
                                         borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         fontSize: '0.75rem', color: '#FFF', fontWeight: 'bold', zIndex: 2
@@ -112,8 +127,15 @@ export default function CreatePoll() {
                                     </div>
                                     <input
                                         type="text"
-                                        className="form-input"
-                                        style={{ paddingLeft: '3rem', background: '#1F2937', borderColor: '#374151' }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.8rem 1rem 0.8rem 3.5rem',
+                                            background: '#1F2937',
+                                            border: '1px solid #374151',
+                                            borderRadius: '10px',
+                                            color: '#E5E7EB',
+                                            fontSize: '1rem'
+                                        }}
                                         placeholder={`Option ${index + 1}`}
                                         value={option}
                                         onChange={(e) => handleOptionChange(index, e.target.value)}
@@ -123,30 +145,40 @@ export default function CreatePoll() {
                                             type="button"
                                             className="remove-option-btn"
                                             onClick={() => removeOption(index)}
-                                            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '1.2rem' }}
+                                            style={{
+                                                position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                                                background: 'none', border: 'none', color: '#EF4444',
+                                                cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px'
+                                            }}
                                         >
                                             ×
                                         </button>
                                     )}
                                 </div>
                             ))}
-                        </div>
 
-                        <button
-                            type="button"
-                            className="btn btn-secondary btn-full"
-                            style={{
-                                marginBottom: '2rem',
-                                border: '1px dashed #4B5563',
-                                background: 'transparent',
-                                color: '#9CA3AF',
-                                padding: '0.8rem'
-                            }}
-                            onClick={addOption}
-                            disabled={options.length >= 10}
-                        >
-                            + Add Response Parameter
-                        </button>
+                            <button
+                                type="button"
+                                style={{
+                                    width: '100%',
+                                    marginTop: '0.5rem',
+                                    border: '1px dashed #4B5563',
+                                    borderRadius: '10px',
+                                    background: 'transparent',
+                                    color: '#9CA3AF',
+                                    padding: '0.8rem',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    transition: 'border-color 0.2s, color 0.2s'
+                                }}
+                                onClick={addOption}
+                                disabled={options.length >= 10}
+                                onMouseOver={(e) => { e.currentTarget.style.borderColor = '#A78BFA'; e.currentTarget.style.color = '#A78BFA'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.borderColor = '#4B5563'; e.currentTarget.style.color = '#9CA3AF'; }}
+                            >
+                                + Add Response Parameter
+                            </button>
+                        </div>
 
                         {error && (
                             <div style={{
@@ -155,18 +187,17 @@ export default function CreatePoll() {
                                 color: '#EF4444',
                                 padding: '1rem',
                                 borderRadius: '8px',
-                                marginBottom: '1.5rem',
                                 display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem'
                             }}>
                                 <span>⚠️</span> {error}
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid #374151', paddingTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid #374151', paddingTop: '2rem' }}>
                             <button
                                 type="button"
                                 className="btn"
-                                style={{ width: '100px', background: '#374151', color: '#FFF', border: 'none' }}
+                                style={{ padding: '0.8rem 1.5rem', background: '#374151', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500' }}
                                 onClick={() => navigate('/')}
                             >
                                 Abort
@@ -174,7 +205,7 @@ export default function CreatePoll() {
                             <button
                                 type="submit"
                                 className="btn btn-primary"
-                                style={{ flex: 1, border: 'none', fontSize: '1rem', letterSpacing: '1px' }}
+                                style={{ flex: 1, border: 'none', fontSize: '1rem', letterSpacing: '1px', borderRadius: '10px', padding: '0.8rem' }}
                                 disabled={loading}
                             >
                                 {loading ? 'INITIALIZING...' : 'INITIALIZE POLL SYSTEM'}
@@ -185,12 +216,12 @@ export default function CreatePoll() {
 
                 {/* Right Panel: Parameters Info */}
                 <div className="card" style={{ height: 'fit-content' }}>
-                    <div className="card-title">
+                    <div className="card-title" style={{ marginBottom: '1.5rem' }}>
                         Parameters
                         <span style={{ fontSize: '1.2rem' }}>⚙️</span>
                     </div>
 
-                    <ul style={{ listStyle: 'none', padding: 0, fontSize: '0.95rem', color: '#D1D5DB', lineHeight: '2' }}>
+                    <ul style={{ listStyle: 'none', padding: 0, fontSize: '0.95rem', color: '#D1D5DB', lineHeight: '2.2' }}>
                         <li style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ color: '#10B981' }}>✓</span> Max 500 characters
                         </li>
