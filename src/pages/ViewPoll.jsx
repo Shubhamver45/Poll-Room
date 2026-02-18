@@ -75,9 +75,7 @@ export default function ViewPoll() {
             </header>
 
             {/* Layout Grid: 2 Columns (Main Poll | Sidebar Stats) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: '2rem' }}>
-
-                {/* Check alignment on mobile via CSS later, simpler inline styles for now */}
+            <div className="viewpoll-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '2rem' }}>
 
                 {/* LEFT: Main Poll Card */}
                 <div className="card" style={{ padding: '2.5rem', border: '1px solid #374151' }}>
@@ -172,26 +170,33 @@ export default function ViewPoll() {
                         </div>
                     </div>
 
-                    {/* Share Card */}
-                    <div className="card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #2D1B4E 0%, #1F2937 100%)', border: '1px solid #4C1D95' }}>
-                        <div style={{ color: '#A78BFA', fontWeight: 'bold', marginBottom: '1rem', fontSize: '0.9rem' }}>SHARE POLL</div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                readOnly
-                                value={window.location.href}
-                                style={{
-                                    flex: 1, background: 'rgba(0,0,0,0.3)', border: 'none',
-                                    color: '#9CA3AF', borderRadius: '8px', padding: '0.5rem', fontSize: '0.8rem'
-                                }}
-                            />
+                    {/* Orange Highlight Card (Requested Feature) */}
+                    <div className="card" style={{
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, #F59E0B 0%, #ea580c 100%)',
+                        border: 'none',
+                        boxShadow: '0 8px 16px -4px rgba(245, 158, 11, 0.5)',
+                        position: 'relative', overflow: 'hidden'
+                    }}>
+                        <div style={{ color: '#FFF', fontWeight: '800', marginBottom: '0.5rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            PREMIUM FEATURE ⚡
+                        </div>
+                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.85rem', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
+                            Unlock advanced analytics and real-time voter insights.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '8px' }}>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: '0.5rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem', fontWeight: '500' }}>
+                                {window.location.host}/poll/...
+                            </div>
                             <button
                                 onClick={copyLink}
                                 style={{
-                                    background: '#A78BFA', border: 'none', borderRadius: '8px',
-                                    padding: '0 1rem', fontWeight: 'bold', cursor: 'pointer', color: '#FFF'
+                                    background: '#FFF', border: 'none', borderRadius: '6px',
+                                    padding: '0.5rem 1rem', fontWeight: 'bold', cursor: 'pointer', color: '#ea580c', fontSize: '0.85rem'
                                 }}
                             >
-                                {copied ? 'Copied' : 'Copy'}
+                                {copied ? '✓' : 'Copy'}
                             </button>
                         </div>
                     </div>
