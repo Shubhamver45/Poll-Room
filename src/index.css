@@ -60,6 +60,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .logo {
@@ -103,6 +106,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -254,6 +258,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
+  text-decoration: none;
 }
 
 .btn-primary:active {
@@ -271,6 +276,7 @@ body {
   }
 }
 
+/* --- RESPONSIVE DESIGN --- */
 @media (max-width: 900px) {
   .app-layout {
     grid-template-columns: 1fr;
@@ -280,12 +286,38 @@ body {
     display: none;
   }
 
-  /* Hide Sidebar on mobile for now */
+  /* Hide Sidebar on mobile */
+
+  .main-content {
+    padding: 1rem;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
+  /* Stack Grid */
   .stats-row {
     grid-template-columns: 1fr 1fr;
   }
+
+  /* 2x2 on mobile */
+
+  .search-bar {
+    display: none;
+  }
+
+  .top-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* 1x1 on very small screens */
 }
