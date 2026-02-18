@@ -1,348 +1,305 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getPoll } from '../services/api';
 import { getSocket, joinPollRoom, leavePollRoom, emitVote } from '../services/socket';
 import { getVoterId, markPollAsVoted, hasVotedOnPoll } from '../services/voter';
 
-/* --- PARTICLES COMPONENT --- */
-const Confetti = ({ theme }) => {
-    const particles = Array.from({ length: 40 });
-    const getColors = () => {
-        // Colors match the theme
-        if (theme === 'theme-fire') return ['#EF4444', '#B91C1C', '#FFA500'];
-        if (theme === 'theme-joy') return ['#D946EF', '#8B5CF6', '#F472B6'];
-        if (theme === 'theme-emerald') return ['#10B981', '#059669', '#34D399'];
-        return ['#3B82F6', '#60A5FA', '#93C5FD']; // Default Blue
-    };
-    const colors = getColors();
+// --- CUSTOM SVG CHARTS (VertexGuard Style) ---
+
+// 1. Smooth Spline Chart (Vote Velocity)
+const SplineChart = ({ data, color = '#A78BFA' }) => {
+    // Generate a simple smooth path based on data points
+    // Simplified for demo: just visualizes random "activity" curve
+    const points = data.map((val, i) => `${(i / (data.length - 1)) * 100},${100 - val}`).join(' ');
+    // Smooth curve approximation (Catmull-Rom or similar logic omitted for brevity, using polyline for now with CSS smoothing)
 
     return (
-        <div className="confetti-container">
-            {particles.map((_, i) => {
-                const left = Math.random() * 100;
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                return (
-                    <div
-                        key={i}
-                        style={{
-                            position: 'absolute',
-                            top: '-10px',
-                            left: `${left}%`,
-                            width: '8px',
-                            height: '8px',
-                            backgroundColor: color,
-                            borderRadius: '50%',
-                            animation: `fall ${1 + Math.random() * 2}s linear ${Math.random() * 0.5}s forwards`,
-                            opacity: 0.8
-                        }}
-                    />
-                );
-            })}
-            <style>{`@keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }`}</style>
-        </div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+            <defs>
+                <linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+                    <stop offset="100%" stopColor={color} stopOpacity="0" />
+                </linearGradient>
+            </defs>
+            <path d={`M 0,100 ${points} 100,100`} fill="url(#gradient)" stroke="none" />
+            <polyline
+                points={points}
+                fill="none"
+                stroke={color}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+                style={{ filter: 'drop-shadow(0 0 4px rgba(167, 139, 250, 0.5))' }}
+            />
+        </svg>
     );
 };
 
-// --- NEURAL THEME LOGIC (Restored) ---
-const determineTheme = (text) => {
-    const t = text.toLowerCase();
+// 2. Donut Chart (Option Distribution)
+const DonutChart = ({ options, total }) => {
+    let cumulative = 0;
+    const colors = ['#A78BFA', '#F472B6', '#3B82F6', '#F97316', '#10B981', '#FCD34D'];
 
-    const fireKeywords = ['hate', 'worst', 'kill', 'war', 'danger', 'dead', 'die', 'bad', 'evil', 'fight', 'angry', 'error', 'fail'];
-    if (fireKeywords.some(k => t.includes(k))) return 'theme-fire'; // RED
+    // Default empty grey circle if 0 votes
+    if (total === 0) {
+        return (
+            <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                <circle cx="18" cy="18" r="15.915" fill="none" stroke="#1F2937" strokeWidth="3" />
+            </svg>
+        );
+    }
 
-    const joyKeywords = ['love', 'best', 'happy', 'good', 'fun', 'joy', 'cute', 'win', 'party', 'laugh', 'friend', 'beautiful', 'nice'];
-    if (joyKeywords.some(k => t.includes(k))) return 'theme-joy'; // PURPLE/PINK
+    return (
+        <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+            {options.map((opt, i) => {
+                const percent = (opt.votes / total) * 100;
+                const strokeDasharray = `${percent} ${100 - percent}`;
+                const offset = 100 - cumulative;
+                cumulative += percent;
 
-    const moneyKeywords = ['money', 'rich', 'finance', 'cash', 'bitcoin', 'crypto', 'gold', 'wealth', 'invest', 'stock', 'profit', 'tree', 'nature', 'growth'];
-    if (moneyKeywords.some(k => t.includes(k))) return 'theme-emerald'; // GREEN
-
-    return ''; // Default Cyber Blue
+                return (
+                    <circle
+                        key={i}
+                        cx="18"
+                        cy="18"
+                        r="15.915"
+                        fill="none"
+                        stroke={colors[i % colors.length]}
+                        strokeWidth="3"
+                        strokeDasharray={strokeDasharray}
+                        strokeDashoffset={offset}
+                        style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                    />
+                );
+            })}
+        </svg>
+    );
 };
 
 export default function ViewPoll() {
     const { shareId } = useParams();
     const [poll, setPoll] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [viewerCount, setViewerCount] = useState(0);
     const [hasVoted, setHasVoted] = useState(false);
     const [votedOptionIndex, setVotedOptionIndex] = useState(-1);
     const [selectedOption, setSelectedOption] = useState(-1);
-    const [voting, setVoting] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const [toast, setToast] = useState({ show: false, message: '', type: '' });
-    const [viewerCount, setViewerCount] = useState(0);
-    const [showConfetti, setShowConfetti] = useState(false);
+    const [chartData, setChartData] = useState([20, 40, 25, 50, 30, 60, 40, 70, 50, 80]); // Dummy history for animation
 
-    // Theme State
-    const [themeClass, setThemeClass] = useState('');
-
-    const prevTotalRef = useRef(0);
     const voterId = getVoterId();
 
-    const showToast = useCallback((message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
-    }, []);
-
-    // Fetch Poll & Set Theme
     useEffect(() => {
         const fetchPoll = async () => {
-            try {
-                const data = await getPoll(shareId, voterId);
-                setPoll(data.poll);
-                prevTotalRef.current = data.poll.totalVotes;
-
-                // Apply Neural Theme based on Question Content
-                const detectedTheme = determineTheme(data.poll.question);
-                if (detectedTheme) {
-                    setThemeClass(detectedTheme);
-                }
-
-                if (data.hasVoted) {
-                    setHasVoted(true);
-                    setVotedOptionIndex(data.votedOptionIndex);
-                }
-                const localVote = hasVotedOnPoll(shareId);
-                if (localVote) {
-                    setHasVoted(true);
-                    setVotedOptionIndex(localVote.optionIndex);
-                }
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+            const data = await getPoll(shareId, voterId);
+            setPoll(data.poll);
+            if (data.hasVoted) {
+                setHasVoted(true);
+                setVotedOptionIndex(data.votedOptionIndex);
             }
         };
         fetchPoll();
-    }, [shareId, voterId]);
+    }, [shareId]);
 
-    // Apply Theme to Body (Global Background Switch)
-    useEffect(() => {
-        if (themeClass) {
-            document.body.className = themeClass; // Apply to body for full BG change
-        } else {
-            document.body.className = '';
-        }
-        return () => { document.body.className = ''; }; // Cleanup
-    }, [themeClass]);
-
-
+    // Socket Listener
     useEffect(() => {
         const socket = getSocket();
         joinPollRoom(shareId);
 
         socket.on('poll-updated', (data) => {
-            prevTotalRef.current = data.totalVotes;
-            setPoll((prev) => prev ? { ...prev, options: data.options, totalVotes: data.totalVotes } : prev);
+            setPoll(prev => ({ ...prev, ...data }));
+            // Add a random "bump" to chart to simulate live activity
+            setChartData(prev => [...prev.slice(1), Math.min(100, Math.max(10, prev[prev.length - 1] + (Math.random() * 40 - 20)))]);
         });
 
-        socket.on('poll-data', (data) => {
-            setPoll((prev) => prev ? { ...prev, options: data.options, totalVotes: data.totalVotes } : prev);
-        });
-
-        socket.on('viewer-count', (data) => {
-            setViewerCount(data.count);
-        });
+        socket.on('viewer-count', (data) => setViewerCount(data.count));
 
         socket.on('vote-success', (data) => {
             setHasVoted(true);
             setVotedOptionIndex(data.votedOptionIndex);
-            setVoting(false);
-            setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 3000);
-            showToast('Vote successfully recorded');
         });
 
-        socket.on('vote-error', (data) => {
-            setVoting(false);
-            if (data.votedOptionIndex !== undefined) {
-                setHasVoted(true);
-                setVotedOptionIndex(data.votedOptionIndex);
-                markPollAsVoted(shareId, data.votedOptionIndex);
-            }
-            showToast(data.error || 'Failed to record vote', 'error');
-        });
-
-        return () => {
-            leavePollRoom(shareId);
-            socket.off('poll-updated');
-            socket.off('poll-data');
-            socket.off('vote-success');
-            socket.off('vote-error');
-            socket.off('viewer-count');
-        };
-    }, [shareId, showToast]);
+        return () => leavePollRoom(shareId);
+    }, [shareId]);
 
     const handleVote = () => {
-        if (selectedOption < 0 || hasVoted || voting) return;
-        setVoting(true);
-        emitVote(shareId, selectedOption, voterId);
-        markPollAsVoted(shareId, selectedOption);
-    };
-
-    const copyShareLink = async () => {
-        const url = window.location.href;
-        try {
-            await navigator.clipboard.writeText(url);
-            setCopied(true);
-            showToast('Link copied to clipboard');
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            setCopied(true);
-            showToast('Link copied to clipboard');
-            setTimeout(() => setCopied(false), 2000);
+        if (selectedOption >= 0 && !hasVoted) {
+            emitVote(shareId, selectedOption, voterId);
+            markPollAsVoted(shareId, selectedOption);
         }
     };
 
-    const downloadReport = () => {
-        if (!poll) return;
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += `Question,${poll.question}\n`;
-        csvContent += `Total Votes,${poll.totalVotes}\n\n`;
-        csvContent += "Option,Votes,%\n";
-        poll.options.forEach(opt => {
-            const percent = poll.totalVotes > 0 ? ((opt.votes / poll.totalVotes) * 100).toFixed(1) : 0;
-            csvContent += `"${opt.text}",${opt.votes},${percent}%\n`;
-        });
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `poll_${shareId}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+    if (!poll) return <div style={{ padding: '2rem', color: 'white' }}>Loading Dashboard...</div>;
 
-    if (loading) {
-        return (
-            <div className="app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Loading Neural Interface...</div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="app-container">
-                <div className="card" style={{ textAlign: 'center', borderColor: '#EF4444' }}>
-                    <p style={{ color: '#EF4444', marginBottom: '1rem' }}>{error}</p>
-                    <Link to="/" className="btn btn-secondary">RETURN HOME</Link>
-                </div>
-            </div>
-        );
-    }
-
-    const maxVotes = Math.max(...poll.options.map((o) => o.votes), 0);
+    const colors = ['#A78BFA', '#F472B6', '#3B82F6', '#F97316', '#10B981', '#FCD34D'];
 
     return (
-        <div className={`app-container ${themeClass}`}>
-            <header className="header">
-                <Link to="/" className="header-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <span>PollRoom</span>
-                </Link>
-                <div className="live-badge">NEURAL LIVE</div>
-            </header>
+        <div className="app-layout">
 
-            {showConfetti && <Confetti theme={themeClass} />}
+            {/* Sidebar (Left Nav) */}
+            <aside className="sidebar">
+                <div className="logo">
+                    <span>Vertex</span>Guard
+                </div>
 
-            <div className="poll-grid">
-                {/* Left Column: Voting */}
-                <div style={{ flex: 2 }}>
-                    <h1 className="poll-question">{poll.question}</h1>
+                <nav>
+                    <div className="nav-item active">
+                        <span>📊</span> Overview
+                    </div>
+                    <div className="nav-item">
+                        <span>⚠️</span> Issues
+                    </div>
+                    <div className="nav-item">
+                        <span>📂</span> Files
+                    </div>
+                    <br />
+                    <div style={{ color: '#6B7280', fontSize: '0.8rem', paddingLeft: '1rem', marginBottom: '0.5rem' }}>REPORTS</div>
+                    <div className="nav-item">
+                        <span>🛡️</span> Threat Details
+                    </div>
+                </nav>
 
-                    <div style={{ marginTop: '2rem' }}>
+                <div style={{ marginTop: 'auto', background: '#1F2937', padding: '1rem', borderRadius: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem' }}>💎</div>
+                    <div style={{ fontWeight: '600', marginBottom: '5px' }}>Premium Access</div>
+                    <button style={{ width: '100%', background: 'var(--primary)', border: 'none', padding: '0.5rem', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Upgrade</button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="main-content">
+
+                {/* Header */}
+                <header className="top-header">
+                    <div>
+                        <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>Dashboard Overview</h1>
+                        <p style={{ color: 'var(--text-muted)' }}>Real-time poll analytics and threat detection.</p>
+                    </div>
+                    <div className="search-bar">
+                        🔍 <span>Search metrics...</span>
+                    </div>
+                </header>
+
+                {/* KPI Cards Row */}
+                <div className="stats-row">
+                    <div className="mini-stat">
+                        <div className="mini-card-title" style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '5px' }}>TOTAL VOTES</div>
+                        <div style={{ fontSize: '2rem', fontWeight: '700' }}>{poll.totalVotes}</div>
+                    </div>
+                    <div className="mini-stat">
+                        <div className="mini-card-title" style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '5px' }}>ACTIVE VIEWERS</div>
+                        <div style={{ fontSize: '2rem', fontWeight: '700', color: '#34D399' }}>{viewerCount}</div>
+                    </div>
+                    <div className="mini-stat">
+                        <div className="mini-card-title" style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '5px' }}>THREAT LEVEL</div>
+                        <div style={{ fontSize: '2rem', fontWeight: '700', color: '#F87171' }}>Low</div>
+                    </div>
+                    <div className="mini-stat">
+                        <div className="mini-card-title" style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '5px' }}>SYSTEM STATUS</div>
+                        <div style={{ fontSize: '2rem', fontWeight: '700', color: '#60A5FA' }}>98%</div>
+                    </div>
+                </div>
+
+                {/* Charts Grid */}
+                <div className="dashboard-grid">
+
+                    {/* Left: Vote Velocity (Line Chart) */}
+                    <div className="card">
+                        <div className="card-title">
+                            <span>Vote Velocity (Threat Summary)</span>
+                            <span style={{ fontSize: '0.8rem', background: '#7C3AED', padding: '2px 8px', borderRadius: '10px' }}>Live</span>
+                        </div>
+                        <div className="chart-container">
+                            <SplineChart data={chartData} />
+                        </div>
+                        <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', color: '#9CA3AF', fontSize: '0.8rem' }}>
+                            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+                        </div>
+                    </div>
+
+                    {/* Right: Risk Score (Donut) */}
+                    <div className="card">
+                        <div className="card-title">Vote Distribution</div>
+                        <div className="donut-container">
+                            <DonutChart options={poll.options} total={poll.totalVotes} />
+
+                            {/* Center Text in Donut */}
+                            <div className="donut-text">
+                                <div className="donut-total">{poll.totalVotes}</div>
+                                <div className="donut-label">Total</div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '1.5rem' }}>
+                            {poll.options.map((opt, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', fontSize: '0.9rem' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors[i % colors.length], marginRight: '10px' }}></div>
+                                    <div style={{ flex: 1, color: '#D1D5DB' }}>{opt.text}</div>
+                                    <div style={{ fontWeight: 'bold' }}>{Math.round((opt.votes / poll.totalVotes) * 100) || 0}%</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom: Poll Voting Options (Threat Details) */}
+                <div className="card">
+                    <div className="card-title">
+                        <span>Poll Options (Action Required)</span>
+                        <div style={{ fontSize: '0.9rem', color: '#6B7280' }}>Select an option to mitigate risk</div>
+                    </div>
+
+                    <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>{poll.question}</h2>
+
+                    <div className="options-list">
                         {poll.options.map((option, i) => {
-                            const percent = poll.totalVotes > 0 ? Math.round((option.votes / poll.totalVotes) * 100) : 0;
-                            const isWinner = option.votes === maxVotes && poll.totalVotes > 0;
                             const isSelected = selectedOption === i;
-                            const isVotedOption = votedOptionIndex === i;
-
-                            let styleClass = 'poll-option';
-                            if (isSelected && !hasVoted) styleClass += ' poll-option--selected';
-                            if (hasVoted) styleClass += ' poll-option--voted';
+                            const color = colors[i % colors.length];
 
                             return (
                                 <div
                                     key={i}
-                                    className={styleClass}
-                                    onClick={() => { if (!hasVoted && !voting) setSelectedOption(i); }}
-                                    role="button"
-                                    tabIndex={!hasVoted ? 0 : -1}
+                                    className="option-row"
+                                    onClick={() => !hasVoted && setSelectedOption(i)}
+                                    style={{
+                                        opacity: hasVoted && i !== votedOptionIndex ? 0.5 : 1,
+                                        background: isSelected ? 'rgba(167, 139, 250, 0.1)' : 'transparent',
+                                        borderLeft: isSelected ? `4px solid ${color}` : '4px solid transparent'
+                                    }}
                                 >
-                                    {/* Gradient Bar */}
-                                    {(hasVoted || poll.totalVotes > 0) && (
-                                        <div className="poll-option__bar" style={{ width: `${percent}%` }} />
+                                    <div className="option-circle" style={{ background: color }}></div>
+                                    <div style={{ flex: 1, fontWeight: '500' }}>{option.text}</div>
+
+                                    {hasVoted && (
+                                        <div style={{ fontWeight: 'bold', color: color }}>
+                                            {option.votes} votes
+                                        </div>
                                     )}
 
-                                    <div className="poll-option__content">
-                                        <span className="poll-option__text" style={{ flex: 1 }}>
-                                            {option.text}
-                                            {isVotedOption && hasVoted && <span style={{ marginLeft: '8px', color: 'var(--primary)' }}>✓</span>}
+                                    {hasVoted && i === votedOptionIndex && (
+                                        <span style={{ marginLeft: '1rem', background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>
+                                            Voted
                                         </span>
-
-                                        {(hasVoted || poll.totalVotes > 0) && (
-                                            <div style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                                                <span className="poll-option__percent">{percent}%</span>
-                                                <div style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
-                                                    {option.votes}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
 
-                    {!hasVoted ? (
-                        <button
-                            className="btn btn-primary btn-full"
-                            style={{ marginTop: '1.5rem' }}
-                            onClick={handleVote}
-                            disabled={selectedOption < 0 || voting}
-                        >
-                            {voting ? 'TRANSMIT' : 'VOTE'}
-                        </button>
-                    ) : (
-                        <div style={{ marginTop: '1.5rem', padding: '1rem', border: '1px solid var(--primary)', borderRadius: '12px', textAlign: 'center', color: 'var(--primary)', fontWeight: 'bold', boxShadow: '0 0 10px var(--primary-glow)' }}>
-                            VOTE CONFIRMED
+                    {!hasVoted && (
+                        <div style={{ marginTop: '2rem', textAlign: 'right' }}>
+                            <button
+                                className="btn-primary"
+                                onClick={handleVote}
+                                disabled={selectedOption < 0}
+                                style={{ opacity: selectedOption < 0 ? 0.5 : 1 }}
+                            >
+                                Submit Decision →
+                            </button>
                         </div>
                     )}
                 </div>
 
-                {/* Right Column: Stats */}
-                <div style={{ flex: 1 }}>
-                    <div className="card" style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                            <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>Total Votes</span>
-                            <span style={{ fontWeight: '700', fontSize: '1.5rem' }}>{poll.totalVotes}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>Active Nodes</span>
-                            <span style={{ color: 'var(--primary)', fontWeight: '600' }}>{viewerCount}</span>
-                        </div>
-                    </div>
-
-                    <div className="card">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', background: 'var(--bg-input)', padding: '0.5rem', borderRadius: '8px' }}>
-                            <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                                {window.location.href}
-                            </div>
-                            <button onClick={copyShareLink} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                                {copied ? 'COPIED' : 'COPY'}
-                            </button>
-                        </div>
-                        <button className="btn btn-secondary btn-full" onClick={downloadReport} style={{ fontSize: '0.85rem' }}>
-                            DOWNLOAD .CSV REPORT
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-
-            <div className={`toast ${toast.show ? 'toast--visible' : ''}`}>
-                {toast.type === 'error' ? '⚠️' : '✅'} {toast.message}
-            </div>
+            </main>
         </div>
     );
 }
