@@ -76,7 +76,7 @@ export default function ViewPoll() {
     return (
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem', minHeight: '100vh' }}>
 
-            {/* Minimal Header */}
+            {/* Header */}
             <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Link to="/" style={{ textDecoration: 'none' }}>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>
@@ -88,15 +88,12 @@ export default function ViewPoll() {
                 </div>
             </header>
 
-            {/* Layout Grid: 2 Columns */}
+            {/* Layout Grid */}
             <div className="viewpoll-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '2rem' }}>
 
-                {/* LEFT: Main Poll Card */}
-                <div className="card" style={{ padding: '2.5rem', border: '1px solid #374151' }}>
-
-                    <div style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'
-                    }}>
+                {/* LEFT: Main Poll Card (Question & Options) */}
+                <div className="card" style={{ padding: '2.5rem', border: '1px solid #374151', height: 'fit-content' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                         <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: 0 }}>{poll.question}</h2>
                         <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                             LIVE
@@ -107,7 +104,6 @@ export default function ViewPoll() {
                         {poll.options.map((option, i) => {
                             const isSelected = selectedOption === i;
                             const percent = poll.totalVotes > 0 ? Math.round((option.votes / poll.totalVotes) * 100) : 0;
-                            const barColor = (hasVoted && i === votedOptionIndex) ? '#A78BFA' : '#4B5563';
 
                             return (
                                 <div
@@ -169,7 +165,7 @@ export default function ViewPoll() {
                 {/* RIGHT: Sidebar Stack */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                    {/* Top Row: Stats */}
+                    {/* Row 1: Stats */}
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <div className="card" style={{ flex: 1, padding: '1.5rem', textAlign: 'center', background: '#1F2937' }}>
                             <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Total Votes</div>
@@ -181,31 +177,7 @@ export default function ViewPoll() {
                         </div>
                     </div>
 
-                    {/* Share Card (Dark) */}
-                    <div className="card" style={{ padding: '1.25rem', background: '#1F2937', border: '1px solid #374151' }}>
-                        <div style={{ color: '#9CA3AF', fontWeight: 'bold', marginBottom: '0.8rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>INVITE VOTERS</div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                readOnly
-                                value={window.location.href}
-                                style={{
-                                    flex: 1, background: '#111827', border: '1px solid #374151',
-                                    color: '#D1D5DB', borderRadius: '6px', padding: '0.5rem', fontSize: '0.8rem'
-                                }}
-                            />
-                            <button
-                                onClick={copyLink}
-                                style={{
-                                    background: '#374151', border: '1px solid #4B5563', borderRadius: '6px',
-                                    padding: '0 0.8rem', fontWeight: 'bold', cursor: 'pointer', color: '#FFF', fontSize: '0.8rem'
-                                }}
-                            >
-                                {copied ? '✓' : 'Copy'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* ANALYTICS REPORT (ORANGE HIGHLIGHT) */}
+                    {/* Row 2: ORANGE ANALYTICS CARD (Middle) */}
                     <div className="card" style={{
                         padding: '1.5rem',
                         background: 'linear-gradient(135deg, #F59E0B 0%, #ea580c 100%)',
@@ -214,13 +186,13 @@ export default function ViewPoll() {
                         color: 'white'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <div style={{ fontWeight: '800', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                ANALYTICS
+                            <div style={{ fontWeight: '800', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                PREMIUM ANALYTICS
                             </div>
-                            <div style={{ fontSize: '1.5rem' }}>📊</div>
+                            <div style={{ fontSize: '1.2rem' }}>⚡</div>
                         </div>
 
-                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
+                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.85rem', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
                             Export detailed visualization and voting pattern data.
                         </p>
 
@@ -230,12 +202,36 @@ export default function ViewPoll() {
                                 width: '100%', padding: '0.8rem',
                                 background: 'white', color: '#ea580c',
                                 border: 'none', borderRadius: '8px',
-                                cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem',
+                                cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem',
                                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                             }}
                         >
                             Download Report ⬇
                         </button>
+                    </div>
+
+                    {/* Row 3: Share / Copy Link (Bottom) */}
+                    <div className="card" style={{ padding: '1.5rem', background: '#1F2937', border: '1px solid #374151' }}>
+                        <div style={{ color: '#9CA3AF', fontWeight: 'bold', marginBottom: '0.8rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>INVITE VOTERS</div>
+                        <div style={{ display: 'flex', gap: '0.5rem', background: '#111827', padding: '4px', borderRadius: '8px', border: '1px solid #374151' }}>
+                            <input
+                                readOnly
+                                value={window.location.href}
+                                style={{
+                                    flex: 1, background: 'transparent', border: 'none',
+                                    color: '#D1D5DB', padding: '0.5rem', fontSize: '0.8rem', outline: 'none'
+                                }}
+                            />
+                            <button
+                                onClick={copyLink}
+                                style={{
+                                    background: '#374151', border: '1px solid #4B5563', borderRadius: '6px',
+                                    padding: '0 1rem', fontWeight: 'bold', cursor: 'pointer', color: '#FFF', fontSize: '0.8rem'
+                                }}
+                            >
+                                {copied ? '✓' : 'Copy'}
+                            </button>
+                        </div>
                     </div>
 
                 </div>
