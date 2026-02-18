@@ -15,14 +15,20 @@
   /* Accents */
   --primary: #8B5CF6;
   /* Violet */
-  --primary-gradient: linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%);
+  --primary-gradient: linear-gradient(135deg, #7C3AED 0%, #C026D3 100%);
   /* Purple -> Pink */
   --secondary: #3B82F6;
   /* Blue */
+  --terminal-bg: #0F172A;
+  /* Almost black blue */
+  --terminal-text: #E2E8F0;
+  /* Off-white */
+
 
   /* Status */
   --success: #10B981;
   /* Green */
+  --error: #EF4444;
   --warning: #F59E0B;
   /* Orange */
   --danger: #EF4444;
@@ -362,7 +368,112 @@ h3 {
   background: var(--border);
 }
 
-/* Toast */
+
+/* Responsive Poll Grid */
+.poll-grid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  /* Stacks on mobile */
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .poll-grid {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+/* Terminal */
+.terminal-container {
+
+  background: var(--terminal-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-header {
+  background: #1E293B;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+  margin-right: 12px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot.red {
+  background: #EF4444;
+}
+
+.dot.yellow {
+  background: #F59E0B;
+}
+
+.dot.green {
+  background: #10B981;
+}
+
+.terminal-title {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.terminal-body {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  scroll-behavior: smooth;
+}
+
+.log-line {
+  margin-bottom: 4px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.log-time {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.log-msg {
+  font-weight: 400;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toast (Refined) */
 .toast {
   position: fixed;
   bottom: 2rem;
