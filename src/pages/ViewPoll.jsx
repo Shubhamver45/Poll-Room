@@ -57,6 +57,20 @@ export default function ViewPoll() {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const downloadReport = () => {
+        if (!poll) return;
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += `Question,${poll.question}\nTotal Votes,${poll.totalVotes}\n\nOption,Votes\n`;
+        poll.options.forEach(opt => { csvContent += `"${opt.text}",${opt.votes}\n`; });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `poll_analytics_${shareId}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (!poll) return <div style={{ padding: '2rem', color: 'white', textAlign: 'center' }}>Loading Room...</div>;
 
     return (
@@ -74,7 +88,7 @@ export default function ViewPoll() {
                 </div>
             </header>
 
-            {/* Layout Grid: 2 Columns (Main Poll | Sidebar Stats) */}
+            {/* Layout Grid: 2 Columns */}
             <div className="viewpoll-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '2rem' }}>
 
                 {/* LEFT: Main Poll Card */}
@@ -93,8 +107,6 @@ export default function ViewPoll() {
                         {poll.options.map((option, i) => {
                             const isSelected = selectedOption === i;
                             const percent = poll.totalVotes > 0 ? Math.round((option.votes / poll.totalVotes) * 100) : 0;
-
-                            // Purple if voted or leading, else dark grey
                             const barColor = (hasVoted && i === votedOptionIndex) ? '#A78BFA' : '#4B5563';
 
                             return (
@@ -112,7 +124,6 @@ export default function ViewPoll() {
                                         padding: '1rem'
                                     }}
                                 >
-                                    {/* Progress Bar Background */}
                                     {hasVoted && (
                                         <div style={{
                                             position: 'absolute', top: 0, left: 0, bottom: 0,
@@ -158,7 +169,7 @@ export default function ViewPoll() {
                 {/* RIGHT: Sidebar Stack */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                    {/* Top Row: 2 Small Stat Cards */}
+                    {/* Top Row: Stats */}
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <div className="card" style={{ flex: 1, padding: '1.5rem', textAlign: 'center', background: '#1F2937' }}>
                             <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Total Votes</div>
@@ -170,30 +181,23 @@ export default function ViewPoll() {
                         </div>
                     </div>
 
-                    {/* Orange Highlight Card (Requested Feature) */}
-                    <div className="card" style={{
-                        padding: '1.5rem',
-                        background: 'linear-gradient(135deg, #F59E0B 0%, #ea580c 100%)',
-                        border: 'none',
-                        boxShadow: '0 8px 16px -4px rgba(245, 158, 11, 0.5)',
-                        position: 'relative', overflow: 'hidden'
-                    }}>
-                        <div style={{ color: '#FFF', fontWeight: '800', marginBottom: '0.5rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            PREMIUM FEATURE ⚡
-                        </div>
-                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.85rem', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
-                            Unlock advanced analytics and real-time voter insights.
-                        </p>
-
-                        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '8px' }}>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: '0.5rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem', fontWeight: '500' }}>
-                                {window.location.host}/poll/...
-                            </div>
+                    {/* Share Card (Dark) */}
+                    <div className="card" style={{ padding: '1.25rem', background: '#1F2937', border: '1px solid #374151' }}>
+                        <div style={{ color: '#9CA3AF', fontWeight: 'bold', marginBottom: '0.8rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>INVITE VOTERS</div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                readOnly
+                                value={window.location.href}
+                                style={{
+                                    flex: 1, background: '#111827', border: '1px solid #374151',
+                                    color: '#D1D5DB', borderRadius: '6px', padding: '0.5rem', fontSize: '0.8rem'
+                                }}
+                            />
                             <button
                                 onClick={copyLink}
                                 style={{
-                                    background: '#FFF', border: 'none', borderRadius: '6px',
-                                    padding: '0.5rem 1rem', fontWeight: 'bold', cursor: 'pointer', color: '#ea580c', fontSize: '0.85rem'
+                                    background: '#374151', border: '1px solid #4B5563', borderRadius: '6px',
+                                    padding: '0 0.8rem', fontWeight: 'bold', cursor: 'pointer', color: '#FFF', fontSize: '0.8rem'
                                 }}
                             >
                                 {copied ? '✓' : 'Copy'}
@@ -201,15 +205,36 @@ export default function ViewPoll() {
                         </div>
                     </div>
 
-                    {/* Download Report Card */}
-                    <div className="card" style={{ padding: '1.5rem' }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Analytics Report</div>
-                        <p style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '1rem' }}>Download detailed voting data in CSV format.</p>
+                    {/* ANALYTICS REPORT (ORANGE HIGHLIGHT) */}
+                    <div className="card" style={{
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, #F59E0B 0%, #ea580c 100%)',
+                        border: 'none',
+                        boxShadow: '0 8px 16px -4px rgba(245, 158, 11, 0.5)',
+                        color: 'white'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <div style={{ fontWeight: '800', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                ANALYTICS
+                            </div>
+                            <div style={{ fontSize: '1.5rem' }}>📊</div>
+                        </div>
+
+                        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
+                            Export detailed visualization and voting pattern data.
+                        </p>
+
                         <button
-                            onClick={() => alert("Report generation feature active.")}
-                            style={{ width: '100%', padding: '0.8rem', background: '#374151', color: '#FFF', border: '1px solid #4B5563', borderRadius: '8px', cursor: 'pointer' }}
+                            onClick={downloadReport}
+                            style={{
+                                width: '100%', padding: '0.8rem',
+                                background: 'white', color: '#ea580c',
+                                border: 'none', borderRadius: '8px',
+                                cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem',
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
                         >
-                            Download .CSV ⬇
+                            Download Report ⬇
                         </button>
                     </div>
 
